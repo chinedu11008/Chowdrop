@@ -1,9 +1,10 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { CUR, FEE, FREE_OVER, MAX_QTY, cats, menu, specials, steps, reviews } from './data.js'
+import { CUR, FEE, FREE_OVER, MAX_QTY, cats, menu, dishDescriptions, specials, steps, reviews } from './data.js'
 import PaystackPop from '@paystack/inline-js'
 import { supabase } from './supabase.js'
 import MerchantDashboard from './MerchantDashboard.vue'
+import FaqChatbot from './FaqChatbot.vue'
 
 const money = n => CUR + n.toLocaleString('en-NG')
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } }
@@ -30,6 +31,7 @@ const loading = ref(true), navOpen = ref(false), cartOpen = ref(false), showTop 
 const merchantView = ref(location.hash === '#business'), staffAccess = ref(false), categoryPageSlug = ref('')
 const merchantOrders = ref([]), merchantLoading = ref(false), merchantError = ref(''), merchantUpdatingId = ref('')
 const cat = ref('all'), q = ref(''), toast = ref('')
+const activeDish = ref(null)
 const cart = ref(loadCart())
 const orders = ref([]), user = ref(null), authOpen = ref(false), mode = ref('login'), authMsg = ref(''), busy = ref(false)
 const auth = reactive({ name: '', email: '', password: '' })
@@ -53,6 +55,8 @@ const add = d => {
   cart.value[d.id] = (cart.value[d.id] || 0) + 1
   say(`${d.name} added to cart`)
 }
+const openDish = d => { activeDish.value = d }
+const closeDish = () => { activeDish.value = null }
 const change = (id, n) => {
   const v = (cart.value[id] || 0) + n
   if (v > MAX_QTY) return say(`You can order up to ${MAX_QTY} of each item`)
@@ -293,12 +297,14 @@ onBeforeUnmount(() => { removeEventListener('scroll', onScroll); removeEventList
       </nav>
       <div class="box-container">
         <article class="box" v-for="d in shown" :key="d.id">
-          <span class="price">{{ money(d.price) }}</span>
-          <img :src="'/images/' + d.img" :alt="d.name" loading="lazy">
-          <div class="product-info"><p class="product-category">{{ categoryLabels[d.cat] }}</p><h2>{{ d.name }}</h2>
-            <div class="stars" aria-label="Rated 4 out of 5"><i v-for="n in 5" :key="n" :class="[n <= 4 ? 'fas' : 'far', 'fa-star']"></i></div>
-            <button class="btn" type="button" @click="add(d)"><i class="fas fa-plus" aria-hidden="true"></i> add to cart</button>
-          </div>
+          <button class="dish-preview" type="button" :aria-label="'View details for ' + d.name" @click="openDish(d)">
+            <span class="price">{{ money(d.price) }}</span>
+            <img :src="'/images/' + d.img" :alt="d.name" loading="lazy">
+            <span class="product-category">{{ categoryLabels[d.cat] }}</span><span class="dish-card-name">{{ d.name }}</span>
+            <span class="stars" aria-label="Rated 4 out of 5"><i v-for="n in 5" :key="n" :class="[n <= 4 ? 'fas' : 'far', 'fa-star']"></i></span>
+            <span class="dish-card-hint"><i class="fas fa-search-plus" aria-hidden="true"></i> view dish details</span>
+          </button>
+          <button class="btn" type="button" @click="add(d)"><i class="fas fa-plus" aria-hidden="true"></i> add to cart</button>
         </article>
         <p v-if="!shown.length" class="empty category-empty">Nothing matches “{{ q }}”. Try another search or category.</p>
       </div>
@@ -319,10 +325,10 @@ onBeforeUnmount(() => { removeEventListener('scroll', onScroll); removeEventList
   <section class="speciality" id="speciality">
     <h1 class="heading">our <span>speciality</span></h1>
     <div class="box-container">
-      <div class="box" v-for="s in specials" :key="s.name">
+      <a class="box" v-for="s in specials" :key="s.name" :href="'#category/' + s.category" :aria-label="'Browse ' + categoryLabels[s.category] + ': ' + s.name" @click.prevent="openCategory(s.category)">
         <img class="image" :src="'/images/' + s.img" :alt="s.name">
-        <div class="content"><i :class="['fas', s.icon]"></i><h3>{{ s.name }}</h3><p>{{ s.text }}</p></div>
-      </div>
+        <div class="content"><i :class="['fas', s.icon]"></i><h3>{{ s.name }}</h3><p>{{ s.text }}</p><span class="speciality-action">browse {{ categoryLabels[s.category] }} <i class="fas fa-arrow-right" aria-hidden="true"></i></span></div>
+      </a>
     </div>
   </section>
 
@@ -333,13 +339,16 @@ onBeforeUnmount(() => { removeEventListener('scroll', onScroll); removeEventList
       <input v-model="q" type="search" placeholder="search the menu" aria-label="Search the menu">
     </div>
     <div class="box-container">
-      <div class="box" v-for="d in shown" :key="d.id">
-        <span class="price">{{ money(d.price) }}</span>
-        <img :src="'/images/' + d.img" :alt="d.name" loading="lazy">
-        <h3>{{ d.name }}</h3>
-        <div class="stars"><i v-for="n in 5" :key="n" :class="[n <= 4 ? 'fas' : 'far', 'fa-star']"></i></div>
-        <button class="btn" @click="add(d)">add to cart</button>
-      </div>
+      <article class="box" v-for="d in shown" :key="d.id">
+        <button class="dish-preview" type="button" :aria-label="'View details for ' + d.name" @click="openDish(d)">
+          <span class="price">{{ money(d.price) }}</span>
+          <img :src="'/images/' + d.img" :alt="d.name" loading="lazy">
+          <span class="dish-card-name">{{ d.name }}</span>
+          <span class="stars" aria-label="Rated 4 out of 5"><i v-for="n in 5" :key="n" :class="[n <= 4 ? 'fas' : 'far', 'fa-star']"></i></span>
+          <span class="dish-card-hint"><i class="fas fa-search-plus" aria-hidden="true"></i> view dish details</span>
+        </button>
+        <button class="btn" type="button" @click="add(d)"><i class="fas fa-plus" aria-hidden="true"></i> add to cart</button>
+      </article>
       <p v-if="!shown.length" class="empty">Nothing matches "{{ q }}". Try another word or category.</p>
     </div>
   </section>
@@ -444,7 +453,21 @@ onBeforeUnmount(() => { removeEventListener('scroll', onScroll); removeEventList
     <p class="swap">{{ mode === 'login' ? 'New here?' : 'Already have an account?' }} <a href="#" @click.prevent="mode = mode === 'login' ? 'signup' : 'login'; authMsg = ''">{{ mode === 'login' ? 'Create an account' : 'Log in' }}</a></p>
   </form>
 
+  <div class="scrim dish-scrim" v-if="activeDish" @click="closeDish"></div>
+  <section v-if="activeDish" class="dish-modal" role="dialog" aria-modal="true" aria-labelledby="dish-title" @keydown.esc.window="closeDish">
+    <button class="dish-close" type="button" aria-label="Close dish details" @click="closeDish"><i class="fas fa-times"></i></button>
+    <div class="dish-modal-image"><img :src="'/images/' + activeDish.img" :alt="activeDish.name"></div>
+    <div class="dish-modal-content">
+      <p class="product-category">{{ categoryLabels[activeDish.cat] }}</p>
+      <h2 id="dish-title">{{ activeDish.name }}</h2>
+      <p class="dish-description">{{ dishDescriptions[activeDish.id] }}</p>
+      <p class="dish-modal-price">{{ money(activeDish.price) }}</p>
+      <button class="btn" type="button" @click="add(activeDish); closeDish()"><i class="fas fa-plus" aria-hidden="true"></i> add to cart</button>
+    </div>
+  </section>
+
   <div class="toast" :class="{ show: toast }" role="status">{{ toast }}</div>
   <div class="loader-container" :class="{ 'fade-out': !loading }"><img src="/images/loader.gif" alt="Loading"></div>
   </div>
+  <FaqChatbot v-if="!merchantView" />
 </template>
