@@ -44,5 +44,8 @@
 .business-order-details li span{color:#333}
 .business-order-details .business-payment{margin-top:.6rem;color:#77818a;font-weight:700}
 .business-order-actions{border-top:1px solid #edf0f2;padding-top:1.2rem;color:#67727a;font-size:1.3rem}
+.business-role{display:inline-block;margin-left:.5rem;padding:.3rem .8rem;border-radius:2rem;background:#fff3df;color:#8a5a0a;font-size:1.2rem;font-weight:700;white-space:nowrap}
+.business-scope{margin:-1.4rem 0 1.5rem;color:#707a82;font-size:1.3rem}
+.business-load-more{display:block;margin:1.8rem auto 0}
 @media(max-width:760px){.business-intro{display:block}.business-intro>p{margin-top:1rem}.business-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.business-order-details{grid-template-columns:1fr;gap:1rem}}
 @media(max-width:520px){.business-header{align-items:flex-start;padding:1.2rem}.business-header-actions{flex-direction:column}.business-main{padding:2rem 1.2rem 4rem}.business-toolbar{align-items:stretch;flex-direction:column}.business-toolbar label{justify-content:space-between}.business-toolbar input{width:100%}.business-order{padding:1.2rem}.business-order-head{align-items:flex-start}.business-order-head>div:first-child{align-items:flex-start;flex-direction:column;gap:.7rem}.business-order-actions{align-items:flex-start;flex-direction:column}}

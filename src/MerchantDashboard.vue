@@ -5,10 +5,14 @@ import { CUR } from './data.js'
 const props = defineProps({
   orders: { type: Array, default: () => [] },
   loading: Boolean,
+  loadingMore: Boolean,
+  hasMore: Boolean,
+  totalOrders: { type: Number, default: 0 },
+  role: { type: String, default: 'staff' },
   error: { type: String, default: '' },
   updatingId: { type: String, default: '' },
 })
-const emit = defineEmits(['refresh', 'update', 'back'])
+const emit = defineEmits(['refresh', 'load-more', 'update', 'back'])
 
 const filter = ref('active')
 const search = ref('')
@@ -75,7 +79,7 @@ function advance(order) {
     <main class="business-main">
       <div class="business-intro">
         <div><p class="business-eyebrow">restaurant operations</p><h1>Order dashboard</h1></div>
-        <p>Review paid and cash-on-delivery orders, then move each order through preparation and delivery.</p>
+        <p>Review paid and cash-on-delivery orders, then move each order through preparation and delivery. <span class="business-role">{{ role || 'staff' }} account</span></p>
       </div>
 
       <p v-if="error" class="business-error" role="alert">{{ error }}</p>
@@ -86,6 +90,7 @@ function advance(order) {
         <article><span>with delivery rider</span><strong>{{ deliveryCount }}</strong></article>
         <article><span>today’s order value</span><strong>{{ money(todayValue) }}</strong><small>{{ todayOrders.length }} orders</small></article>
       </section>
+      <p class="business-scope">Showing {{ orders.length }} of {{ totalOrders }} orders. Summary counts cover the orders loaded so far.</p>
 
       <section class="business-orders">
         <div class="business-toolbar">
@@ -94,11 +99,11 @@ function advance(order) {
               <option value="active">active orders</option>
               <option value="preparing">preparing or ready</option>
               <option value="delivery">out for delivery</option>
-              <option value="completed">delivered</option>
-              <option value="all">all orders</option>
+              <option v-if="role === 'manager'" value="completed">delivered</option>
+              <option value="all">{{ role === 'manager' ? 'all orders' : 'all active orders' }}</option>
             </select>
           </label>
-          <input v-model="search" type="search" aria-label="Search orders" placeholder="search name, phone or reference">
+          <input v-model="search" type="search" aria-label="Search loaded orders" placeholder="search loaded orders">
         </div>
 
         <p v-if="loading && !orders.length" class="business-empty">Loading orders…</p>
@@ -137,6 +142,9 @@ function advance(order) {
             >{{ updatingId === order.id ? 'saving…' : actionLabels[nextStatus[order.fulfillment_status]] }}</button>
           </div>
         </article>
+        <button v-if="hasMore" class="business-button business-load-more" :disabled="loadingMore" @click="emit('load-more')">
+          {{ loadingMore ? 'loading older orders...' : 'load older orders' }}
+        </button>
       </section>
     </main>
   </div>
